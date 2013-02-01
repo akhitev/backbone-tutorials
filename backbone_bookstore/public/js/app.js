@@ -7,6 +7,9 @@
  */
 (function ($) {
 
+    $("#releaseDate").datepicker();
+
+
     var Book = Backbone.Model.extend({
         defaults:{
             coverImage:"img/placeholder.png",
@@ -14,7 +17,10 @@
             author:"John Doe",
             releaseDate:"2012",
             keywords:"JavaScript Programming"
-        }
+        },
+        idAttribute:"_id"
+
+
     });
 
     var BookView = Backbone.View.extend({
@@ -62,7 +68,9 @@
     //  collection
 
     var Library = Backbone.Collection.extend({
-        model:Book
+        model:Book,
+        url:'/api/books'
+
     });
 
 
@@ -82,10 +90,13 @@
         },
 
         initialize:function(){
-            this.collection = new Library(books);
+            this.collection = new Library();
+            this.collection.fetch();
             this.render();
             this.collection.on("add", this.renderBook, this);
             this.collection.on("remove", this.removeBook, this);
+            this.collection.on("reset", this.render, this);
+
         },
 
         render:function(){
@@ -105,15 +116,29 @@
             e.preventDefault()
             var formData = {};
 
-            $("#addBook div").children("input").each(function(i, el){
-                if ($(el).val() !== "") {
+        $("#addBook div").children("input").each(function (i, el) {
+            if ($(el).val() !== "") {
+                if (el.id === 'keywords') {
+                    var keywordArray = $(el).val().split(',');
+                    var keywordObjects = [];
+                    for (var j = 0; j < keywordArray.length; j++) {
+                        keywordObjects[j] = {"keyword":keywordArray[j]};
+                    }
+                    console.log(keywordObjects )
+                    formData[el.id] = keywordObjects;
+                }
+                if (el.id === 'releaseDate'){
+                    formData[el.id] = $('#releaseDate').datepicker("getDate").getTime();
+                } else {
                     formData[el.id] = $(el).val();
                 }
-            });
+            }
+        });
+
 
             books.push(formData);
 
-            this.collection.add(new Book(formData));
+            this.collection.create(new Book(formData));
         },
         removeBook:function(removedBook){
             var removedBookData = removedBook.attributes;
